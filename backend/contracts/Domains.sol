@@ -2,11 +2,15 @@
 pragma solidity >=0.8.4;
 
 import "hardhat/console.sol";
+import { StringUtils } from "./lib/StringUtils.sol";
 
 /**
  * Domainsコントラクト
  */
 contract Domains {
+
+  // トップレベルドメイン(TLD)
+  string public tld;
 
   // ドメインとアドレスを紐づけるmap
   mapping(string => address) public domains;
@@ -15,18 +19,43 @@ contract Domains {
 
   /**
    * コンストラクター
+   * @param _tld トップレベルドメイン
    */
-  constructor() {
-      console.log("THIS IS MY DOMAIN CONTRACT. NICE.");
+  constructor(string memory _tld) payable {
+    tld = _tld;
+    console.log("%s name service deployed", _tld);
+  }
+
+  /**
+   * ドメインの長さによって価格を算出するメソッド
+   * @param name ドメイン名
+   */
+  function price(string calldata name) public pure returns(uint) {
+    // ドメインの長さを算出する。
+    uint len = StringUtils.strlen(name);
+    // 長さによって値が変更する。
+    require(len > 0);
+    if (len == 3) { // 3文字のドメインの場合 
+      return 0.005 * 10**18; // 5 MATIC = 5 000 000 000 000 000 000 (18ケタ).
+    } else if (len == 4) { //4文字のドメインの場合
+      return 0.003 * 10**18; // 0.003MATIC
+    } else { // 4文字以上
+      return 0.001 * 10**18; // 0.001MATIC
+    }
   }
 
   /**
    * ドメインを登録するためのメソッド
    * @param name ドメイン名
    */
-  function register(string calldata name) public {
+  function register(string calldata name) public payable {
     // そのドメインがまだ登録されていないか確認します。
     require(domains[name] == address(0));
+    // ドメイン名のミントに必要な金額を算出する。
+    uint _price = price(name);
+    // 十分な残高を保有しているかどうかチェックする。
+    require(msg.value >= _price, "Not enough Matic paid");
+
     // 登録する。
     domains[name] = msg.sender;
     console.log("%s has registered a domain!", msg.sender);

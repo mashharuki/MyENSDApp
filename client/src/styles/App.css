@@ -53,12 +53,12 @@ header{
 
 .right{
   display: flex;
+  position: relative;
   background: black;
   border-radius: 16px;
   padding: 12px 20px;
-  height: 99%;
-  margin-right: 10%;
-  margin-top: 10px;
+  margin-right: 0%;
+  margin-left: 80%;
 }
 
 .content-container {

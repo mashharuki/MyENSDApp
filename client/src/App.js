@@ -3,6 +3,9 @@ import './styles/App.css';
 import twitterLogo from './assets/twitter-logo.svg';
 import { ethers } from "ethers";
 import contractAbi from "./contracts/contracts/Domains.sol/Domains.json";
+import polygonLogo from './assets/polygonlogo.png';
+import ethLogo from './assets/ethlogo.png';
+import { networks } from './utils/networks';
 
 // トップレベルドメイン
 const tld = ".mash";
@@ -21,12 +24,14 @@ const App = () => {
 	const [currentAccount, setCurrentAccount] = useState("");
 	const [domain, setDomain] = useState("");
   	const [record, setRecord] = useState("");
-
+	const [network, setNetwork] = useState("");
 
 	// メタマスクのオブジェクトを取得する。
 	const { ethereum } = window;
 	// アカウントが変更されたタイミングで再読み込み
 	ethereum.on('accountsChanged', () => window.location.reload());
+	// チェーンが変更されたタイミングでも再読み込み
+	ethereum.on('chainChanged', () => window.location.reload());
 
 	/**
 	 * ウォレットの接続状態をチェックするメソッド
@@ -48,7 +53,12 @@ const App = () => {
 			setCurrentAccount(account);
 		  } else {
 			console.log("No authorized account found");
-		  }
+		}
+
+		// ユーザーのネットワークのチェーンIDをチェックします。
+		const chainId = await ethereum.request({ method: 'eth_chainId' });
+		// ステート変数を更新する。
+		setNetwork(networks[chainId]);
 	};
 
 	/**
@@ -89,12 +99,28 @@ const App = () => {
 		} catch (error) {
 		  	console.log(error);
 		}
+
 	};
 
 	/**
 	 * 入力フォーム用のコンポーネント
 	 */
 	const renderInputForm = () => {
+
+		// テストネットの Polygon Mumbai 上にいない場合の処理
+		if (network !== 'Polygon Mumbai Testnet') {
+			return (
+				<div className="connect-wallet-container">
+					<h2>Please connect to the Polygon Mumbai Testnet</h2>
+					<button 
+						className='cta-button mint-button' 
+						onClick={switchNetwork}
+					>
+						Click here to switch
+					</button>
+				</div>
+			);
+		}
 
 		return (
 		  <div className="form-container">
@@ -197,6 +223,51 @@ const App = () => {
 		}
 	};
 
+	/**
+	 * ネットワークのスイッチを切り替えるボタン
+	 */
+	 const switchNetwork = async () => {
+		if (window.ethereum) {
+		  try {
+			// Mumbai testnet に切り替えさせるメソッドを呼び出す。
+			await window.ethereum.request({
+			  method: 'wallet_switchEthereumChain',
+			  params: [{ chainId: '0x13881' }], 
+			});
+		  } catch (error) {
+			// このエラーコードは当該チェーンがメタマスクに追加されていない場合です。
+			// その場合、ユーザーに追加するよう促します。
+			if (error.code === 4902) {
+			  try {
+				// ネットワーク追加のメソッドを呼び出す。
+				await window.ethereum.request({
+				  method: 'wallet_addEthereumChain',
+				  params: [
+					{
+					  chainId: '0x13881',
+					  chainName: 'Polygon Mumbai Testnet',
+					  rpcUrls: ['https://rpc-mumbai.maticvigil.com/'],
+					  nativeCurrency: {
+						  name: "Mumbai Matic",
+						  symbol: "MATIC",
+						  decimals: 18
+					  },
+					  blockExplorerUrls: ["https://mumbai.polygonscan.com/"]
+					},
+				  ],
+				});
+			  } catch (error) {
+				console.log(error);
+			  }
+			}
+			console.log(error);
+		  }
+		} else {
+		  // window.ethereum が見つからない場合メタマスクのインストールを促します。
+		  alert('MetaMask is not installed. Please install it to use this app: https://metamask.io/download.html');
+		}
+	}
+
 	// 副作用フック
 	useEffect(() => {
 		checkIfWalletIsConnected();
@@ -205,6 +276,11 @@ const App = () => {
   	return (
 		<div className="App">
 			<div className="container">
+				{/* Display a logo and wallet connection status*/}
+				<div className="right">
+					<img alt="Network logo" className="logo" src={ network.includes("Polygon") ? polygonLogo : ethLogo} />
+					{ currentAccount ? <p> Wallet: {currentAccount.slice(0, 6)}...{currentAccount.slice(-4)} </p> : <p> Not connected </p> }
+				</div>
 				<div className="header-container">
 					<header>
 						<div className="center">

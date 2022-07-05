@@ -12,4 +12,5 @@ Polygonネットワーク上でENSを生成するDAppy用のリポジトリに�
 
 
 ### OpenSeaでの出力イメージ
- <a href="https://testnets.opensea.io/assets/mumbai/0x62cd2cbc855746c16fd16b4e5b34110e1549fc2e/0">こちら</a>
+ <a href="https://testnets.opensea.io/assets/mumbai/0x62cd2cbc855746c16fd16b4e5b34110e1549fc2e/0">こちら</a>   
+ <a hre="https://testnets.opensea.io/collection/mashharuki-name-service">mashharuki Name Service</a>

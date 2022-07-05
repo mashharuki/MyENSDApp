@@ -21,17 +21,27 @@ contract Domains is ERC721URIStorage {
 
   // トップレベルドメイン(TLD)
   string public tld;
+  // owner address
+  address payable public owner;
 
   // ドメインとアドレスを紐づけるmap
   mapping(string => address) public domains;
   // ENSとURL等のデータを紐づけるmap
   mapping(string => string) public records;
 
+  // ownerであることを確認する修飾子 
+  modifier onlyOwner() {
+    require(isOwner());
+    _;
+  }
+
   /**
    * コンストラクター
    * @param _tld トップレベルドメイン
    */
   constructor(string memory _tld) payable ERC721("mashharuki Name Service", "MSH") {
+    // owner addressを設定する。
+    owner = payable(msg.sender);
     tld = _tld;
     console.log("%s name service deployed", _tld);
   }
@@ -133,5 +143,23 @@ contract Domains is ERC721URIStorage {
    */
   function getRecord(string calldata name) public view returns(string memory) {
       return records[name];
+  }
+
+  /**
+   * owner addressであることを確認するメソッド
+   */
+  function isOwner() public view returns (bool) {
+    return msg.sender == owner;
+  }
+
+  /**
+   * 資金を引き出すためのメソッド
+   */
+  function withdraw() public onlyOwner {
+    // コントラクトの残高を取得する。
+    uint amount = address(this).balance;
+    // 呼び出し元のアドレスに送金する。
+    (bool success, ) = msg.sender.call{value: amount}("");
+    require(success, "Failed to withdraw Matic");
   }
 }

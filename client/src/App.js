@@ -166,6 +166,7 @@ const App = () => {
 				);
 		  
 				console.log("Going to pop wallet now to pay gas...");
+				
 				// registメソッドの呼び出し
 				let tx = await contract.register(domain, {
 				  	value: ethers.utils.parseEther(price),

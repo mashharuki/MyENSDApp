@@ -13,8 +13,8 @@ const main = async () => {
     console.log("Contract deployed by:", owner.address);
 
     // registerメソッドを実行
-    const txn = await domainContract.register("haruki", {
-        value: hre.ethers.utils.parseEther("0.01"),
+    let txn = await domainContract.register("haruki", {
+        value: hre.ethers.utils.parseEther("1234"),
     });
     await txn.wait();
 
@@ -25,6 +25,29 @@ const main = async () => {
     // 残高を取得する。
     const balance = await hre.ethers.provider.getBalance(domainContract.address);
     console.log("Contract balance:", hre.ethers.utils.formatEther(balance));
+
+    try {
+        // ownerアドレスで取得する。
+        txn = await domainContract.connect(superCoder).withdraw();
+        await txn.wait();
+    } catch(error){
+        console.log("Could not rob contract");
+    }
+    
+    // 引き出し前のウォレットの残高を確認します。あとで比較します。
+    let ownerBalance = await hre.ethers.provider.getBalance(owner.address);
+    console.log("Balance of owner before withdrawal:", hre.ethers.utils.formatEther(ownerBalance));
+    
+    // オーナーで取得する。
+    txn = await domainContract.connect(owner).withdraw();
+    await txn.wait();
+
+    // contract と owner の残高を確認します。
+    const contractBalance = await hre.ethers.provider.getBalance(domainContract.address);
+    ownerBalance = await hre.ethers.provider.getBalance(owner.address);
+
+    console.log("Contract balance after withdrawal:", hre.ethers.utils.formatEther(contractBalance));
+    console.log("Balance of owner after withdrawal:", hre.ethers.utils.formatEther(ownerBalance));
 };
 
 const runMain = async () => {

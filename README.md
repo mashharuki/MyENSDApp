@@ -14,3 +14,12 @@ Polygonネットワーク上でENSを生成するDAppy用のリポジトリに�
 ### OpenSeaでの出力イメージ
  <a href="https://testnets.opensea.io/assets/mumbai/0x62cd2cbc855746c16fd16b4e5b34110e1549fc2e/0">こちら</a>   
  <a hre="https://testnets.opensea.io/collection/mashharuki-name-service">mashharuki Name Service</a>
+
+### カスタムエラーの例
+ ```cmd
+ Compiled 1 Solidity file successfully
+ mash name service deployed
+ Contract deployed to: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+ Contract deployed by: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+ Error: VM Exception while processing transaction: reverted with custom error 'InvalidName("harukiharukiharuki")'
+ ```

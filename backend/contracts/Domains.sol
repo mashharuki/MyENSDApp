@@ -28,6 +28,13 @@ contract Domains is ERC721URIStorage {
   mapping(string => address) public domains;
   // ENSとURL等のデータを紐づけるmap
   mapping(string => string) public records;
+  // IDとドメイン名を紐づけるマmap
+  mapping (uint => string) public names;
+
+  // カスタムエラー用の変数
+  error Unauthorized();
+  error AlreadyRegistered();
+  error InvalidName(string name); 
 
   // ownerであることを確認する修飾子 
   modifier onlyOwner() {
@@ -70,7 +77,10 @@ contract Domains is ERC721URIStorage {
    */
   function register(string calldata name) public payable {
     // そのドメインがまだ登録されていないか確認します。
-    require(domains[name] == address(0));
+    if (domains[name] != address(0)) revert AlreadyRegistered();
+    // 適切な長さであるかチェックする。
+    if (!valid(name)) revert InvalidName(name);
+    
     // ドメイン名のミントに必要な金額を算出する。
     uint _price = price(name);
     // 十分な残高を保有しているかどうかチェックする。
@@ -114,6 +124,8 @@ contract Domains is ERC721URIStorage {
 
     // 登録する。
     domains[name] = msg.sender;
+    // namesにも登録する。
+    names[newRecordId] = name;
     _tokenIds.increment();
   }
 
@@ -132,7 +144,7 @@ contract Domains is ERC721URIStorage {
    */
   function setRecord(string calldata name, string calldata record) public {
       // トランザクションの送信者であることを確認しています。
-      require(domains[name] == msg.sender);
+      if (msg.sender != domains[name]) revert Unauthorized();
       // 登録する。
       records[name] = record;
   }
@@ -162,4 +174,29 @@ contract Domains is ERC721URIStorage {
     (bool success, ) = msg.sender.call{value: amount}("");
     require(success, "Failed to withdraw Matic");
   }
+
+  /**
+   * 全てのドメイン名のデータを取得するメソッド
+   */
+  function getAllNames() public view returns (string[] memory) {
+    console.log("Getting all names from contract");
+    // ドメイン名を格納するための配列を定義する。
+    string[] memory allNames = new string[](_tokenIds.current());
+    // ループ文により配列を作成してドメイン情報を詰めていく。
+    for (uint i = 0; i < _tokenIds.current(); i++) {
+      allNames[i] = names[i];
+      console.log("Name for token %d is %s", i, allNames[i]);
+    }
+    // 返却する。
+    return allNames;
+  }
+
+  /**
+   * ドメインの長さが適切かチェックするためのメソッド
+   */
+  function valid(string calldata name) public pure returns(bool) {
+    return StringUtils.strlen(name) >= 3 && StringUtils.strlen(name) <= 10;
+  }
+
+
 }

@@ -23,3 +23,15 @@ Polygonネットワーク上でENSを生成するDAppy用のリポジトリに�
  Contract deployed by: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
  Error: VM Exception while processing transaction: reverted with custom error 'InvalidName("harukiharukiharuki")'
  ```
+
+### デプロイした時の記録
+```cmd
+Contract deployed to: 0x677fA3F54bab17C4654A534683F1CEab94278632
+Minted domain haruki.mash
+Set record for haruki.mash
+Owner of domain haruki: 0x51908F598A5e0d8F1A3bAbFa6DF76F9704daD072
+Contract balance: 0.1
+```
+
+### ドメインを追加した時の記録
+ <img src="./assets/mint.png">

@@ -10,7 +10,7 @@ import { networks } from './utils/networks';
 // トップレベルドメイン
 const tld = ".mash";
 // コントラクトアドレス
-const CONTRACT_ADDRESS = "0x62cd2cbc855746c16fd16b4e5b34110e1549fc2e";
+const CONTRACT_ADDRESS = "0x677fA3F54bab17C4654A534683F1CEab94278632";
 
 // Constants
 const TWITTER_HANDLE = 'HARUKI05758694';
@@ -25,6 +25,10 @@ const App = () => {
 	const [domain, setDomain] = useState("");
   	const [record, setRecord] = useState("");
 	const [network, setNetwork] = useState("");
+	const [editing, setEditing] = useState(false);
+  	const [loading, setLoading] = useState(false);
+	const [mints, setMints] = useState([]);
+	const [isOwner, setIsOwner] = useState(false);
 
 	// メタマスクのオブジェクトを取得する。
 	const { ethereum } = window;
@@ -141,25 +145,38 @@ const App = () => {
 			  	onChange={(e) => setRecord(e.target.value)}
 			/>
 	
-			<div className="button-container">
-				{/* Mint ボタン */}
+			{editing ? ( 
+				<div className="button-container">
+					<button
+						className="cta-button mint-button"
+						disabled={loading}
+						onClick={updateDomain}
+					>
+						Set data
+					</button>
+					<button className='cta-button mint-button' onClick={() => {setEditing(false)}}>
+						Cancel
+					</button>
+				</div>
+			) : (
 				<button
 					className="cta-button mint-button"
-					disabled={null}
+					disabled={loading}
 					onClick={mintDomain}
 				>
 					Mint
 				</button>
-				{/* Set data ボタン */}
+			)}
+			<div className="button-container">
 				<button
-					className="cta-button mint-button"
-					disabled={null}
-					onClick={null}
+					className="cta-button withdraw-button"
+					disabled={loading}
+					onClick={withdrawAction}
 				>
-					Set data
+					Wtihdraw
 				</button>
 			</div>
-		  </div>
+		</div>
 		);
 	};
 
@@ -195,7 +212,7 @@ const App = () => {
 				
 				// registメソッドの呼び出し
 				let tx = await contract.register(domain, {
-				  	value: ethers.utils.parseEther(price),
+				  	value: ethers.utils.parseEther(price)
 				});
 				// ミントされるまでトランザクションを待ちます。
 				const receipt = await tx.wait();
@@ -212,6 +229,12 @@ const App = () => {
 			
 					console.log("Record set! https://mumbai.polygonscan.com/tx/" + tx.hash);
 		  
+					// fetchMints関数実行後2秒待ちます。
+					setTimeout(() => {
+						// fetchMintsメソッドの呼び出し
+						fetchMints();
+					}, 2000);
+
 					setRecord("");
 					setDomain("");
 				} else {
@@ -268,10 +291,144 @@ const App = () => {
 		}
 	}
 
+	/**
+	 * ドメインボタンを実行するためのメソッド
+	 */
+	const updateDomain = async () => {
+		if (!record || !domain) { return }
+		setLoading(true);
+		console.log("Updating domain", domain, "with record", record);
+
+		  try {
+			if (ethereum) {
+				const provider = new ethers.providers.Web3Provider(ethereum);
+				const signer = provider.getSigner();
+				const contract = new ethers.Contract(CONTRACT_ADDRESS, contractAbi.abi, signer);
+				// setRecordメソッドを呼び出す。	
+				let tx = await contract.setRecord(domain, record);
+				await tx.wait();
+				console.log("Record set https://mumbai.polygonscan.com/tx/"+tx.hash);
+		
+				fetchMints();
+				setRecord('');
+				setDomain('');
+			}
+		  } catch(error) {
+			console.log(error);
+		  }
+		setLoading(false);
+	}
+
+	/**
+	 * ユーザーが発行したドメイン情報を取得するメソッド
+	 */
+	 const fetchMints = async () => {
+		try {
+		  if (ethereum) {
+			const provider = new ethers.providers.Web3Provider(ethereum);
+			const signer = provider.getSigner();
+			// コントラクトをインスタンス化する。
+			const contract = new ethers.Contract(CONTRACT_ADDRESS, contractAbi.abi, signer);
+			// すべてのドメインを取得する。
+			const names = await contract.getAllNames();
+	  
+			// ドメインに紐づく情報を取得する。
+			const mintRecords = await Promise.all(names.map(async (name) => {
+				// ドメインに紐づくデータを取得する。
+				const mintRecord = await contract.records(name);
+				// ドメインに紐づくアドレスを返却する。
+				const owner = await contract.domains(name);
+				// 返却する。
+				return {
+					id: names.indexOf(name),
+					name: name,
+					record: mintRecord,
+					owner: owner,
+				};
+			}));
+	  
+		  console.log("MINTS FETCHED ", mintRecords);
+		  // データを格納する。
+		  setMints(mintRecords);
+		  }
+		} catch(error){
+		  console.log(error);
+		}
+	}
+
+	/**
+	 * renderMintsコンポーネント
+	 */
+	const renderMints = () => {
+		if (currentAccount && mints.length > 0) {
+		  	return (
+				<div className="mint-container">
+					<p className="subtitle"> Recently minted domains!</p>
+						<div className="mint-list">
+							{ mints.map((mint, index) => {
+								return (
+									<div className="mint-item" key={index}>
+										<div className='mint-row'>
+											<a className="link" href={`https://testnets.opensea.io/assets/mumbai/${CONTRACT_ADDRESS}/${mint.id}`} target="_blank" rel="noopener noreferrer">
+											<p className="underlined">{' '}{mint.name}{tld}{' '}</p>
+											</a>
+											{/* mint.owner が currentAccount なら edit ボタンを追加します。 */}
+											{ mint.owner.toLowerCase() === currentAccount.toLowerCase() ?
+											<button className="edit-button" onClick={() => editRecord(mint.name)}>
+												<img className="edit-icon" src="https://img.icons8.com/metro/26/000000/pencil.png" alt="Edit button" />
+											</button>
+											:
+											null
+											}
+										</div>
+										<p> {mint.record} </p>
+									</div>)
+							})}
+						</div>
+		  		</div>
+			);
+		}
+	};
+	  
+	// editモードを管理するメソッド
+	const editRecord = (name) => {
+		console.log("Editing record for", name);
+		setEditing(true);
+		setDomain(name);
+	}
+
+	/**
+	 * 「Withdraw」ボタンを押した時の処理
+	 */
+	const withdrawAction = async() => {
+		try {
+			if (ethereum) {
+			  	const provider = new ethers.providers.Web3Provider(ethereum);
+			  	const signer = provider.getSigner();
+			  	// コントラクトをインスタンス化する。
+			  	const contract = new ethers.Contract(CONTRACT_ADDRESS, contractAbi.abi, signer);
+				// withdrawメソッドを実行する。
+				let tx = await contract.withdraw();
+				await tx.wait();
+				alert('success!!')
+			}
+		} catch (err) {
+			console.log("error", err);
+			alert('fail...');
+		}
+	}
+
 	// 副作用フック
 	useEffect(() => {
 		checkIfWalletIsConnected();
 	}, []);
+
+	// 副作用フック2
+	useEffect(() => {
+		if (network === 'Polygon Mumbai Testnet') {
+		  fetchMints();
+		}
+	}, [currentAccount, network]);
 
   	return (
 		<div className="App">
@@ -291,6 +448,7 @@ const App = () => {
 				</div>
 				{!currentAccount && renderNotConnectedContainer()}
 				{currentAccount && renderInputForm()}
+				{mints && renderMints()}
        			<div className="footer-container">
 					<img alt="Twitter Logo" className="twitter-logo" src={twitterLogo} />
 					<a
